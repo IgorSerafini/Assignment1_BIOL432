@@ -1,0 +1,114 @@
+---
+title: "R- Markdown"
+author: "Igor Serafini"
+date: "2023-01-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("dataGenerato.R")
+source("volumeEstimato.R")
+```
+
+GitHub respository: 
+
+[My GitHub repository](https://github.com/IgorSerafini/Assignment1_BIOL432)
+
+
+#Script 1 (dataGenerato.R):
+Generates random values for limb width and length for different species.
+
+#Script 2 (volumeEstimato.R):
+Adds a column for volume of a given species leg 
+
+#1
+Loading revised measurement.csv data and fixing the extra column (X.1)
+```{r}
+measurements<- read.csv("measurement.csv")
+
+measurements<- measurements %>% 
+  select(-X.1)#removing extra column
+
+head(measurements) #checking data 
+```
+Loading dplyr  
+```{r}
+library(dplyr)
+```
+
+#2
+Sorting Data by species, by observer, and by limb volume: Note, arranged them seperately since the position of each row is relation to all other rows.
+```{r}
+Sort_Species<- measurements %>% 
+  arrange(Species_names) #Sorting by Species 
+
+Sort_Observer<- measurements %>% 
+  arrange(Observer_names) #Sorting by Observer  
+
+Sort_Volume<- measurements %>% 
+  arrange(Volume) #Sorting by Limb Volume  
+
+#Checking Sort data
+print(Sort_Species)
+print(Sort_Observer)
+print(Sort_Volume)
+```
+#3
+Creating table showing the average volume for each species
+```{r}
+#First I will create a table with only Species_names and Volume: 
+
+avgVol_Species<- measurements %>% 
+  select(-Limb_width, -Limb_length, -Observer_names)
+
+avgVol_Species_table<- avgVol_Species %>% 
+  group_by(Species_names) %>% 
+  mutate(average_volume= mean(Volume))
+
+#Lets check the data 
+
+print(avgVol_Species_table)
+
+```
+
+#4
+Creating table showing the number of observations for each combination of species and observer, by using the group_by() and count() functions 
+```{r}
+obs_spec<- measurements %>%  
+  group_by(Observer_names, Species_names) %>%  
+  count()
+
+#Lets check out the data
+
+print(obs_spec)
+
+```
+
+#5
+ Creating a single box plot depicting the key features of the distributions of volumes for each species; note, will be loading the ggplot library
+```{r}
+library(ggplot2)
+
+Plot_VolxSpec<- ggplot(Sort_Species, aes(x= Species_names, y= Volume, fill= Species_names)) + geom_boxplot(outlier.stroke = 0.5) +
+  ggtitle("Distributions of Volume for each species") + theme_classic() +
+  xlab("Species_names") + ylab("Volume") +
+  scale_fill_manual(values = c("#84DCC6", "#D6EDFF", "#F8766DFF", "#8B95C9", "#478978")) 
+
+#Lets check it out 
+print(Plot_VolxSpec)
+  
+```
+
+#6
+Creating a multi-panel plot demonstrating a frequency histogram showing distribution of limb volume for each species; Note used coolors to pick the different pallets 
+```{r}
+Hist_disVol<- ggplot(Sort_Species, aes(x= Volume, fill= Species_names)) + geom_histogram() + facet_wrap(Species_names~.,ncol= 3) + 
+  ggtitle("Multi-panel plot demonstrating a frequency histogram of limb volume for each Species") + 
+  theme_classic() + scale_fill_manual(values = c("#84DCC6", "#D6EDFF", "#F8766DFF", "#8B95C9", "#478978")) 
+
+
+#Lets check it out 
+print(Hist_disVol) 
+
+```
