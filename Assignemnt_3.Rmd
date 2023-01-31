@@ -1,0 +1,212 @@
+---
+title: "Assignment_3"
+author: "Igor Serafini"
+date: "2023-01-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Assignment 3
+
+[My GitHub repository](https://github.com/IgorSerafini/Assignment1_BIOL432)
+
+Loading libraries
+```{r}
+library(dplyr)
+library(ggplot2)
+library(MASS)
+```
+
+#Part 1: Data Exploration & QA/QC
+
+1.
+loading data 
+```{r}
+Col_Data<- read.csv("Col.csv.csv")
+```
+
+2.
+Inspecting the data 
+```{r}
+str(Col_Data)
+```
+I can already find some NA's, thus, an imputation with the means will be needed... however, before doing so I still need to inspect other properties of the data. 
+
+```{r}
+dim(Col_Data)
+head(Col_Data)
+print(Col_Data)
+
+```
+
+Theme_set
+```{r}
+source("http://bit.ly/theme_pub")
+theme_set(theme_pub())
+```
+
+Imputing the data, replacing NA's with the columns average 
+```{r}
+#Note I chose to optimze the initial code, since manually changing all the given columns would be quite laborious
+
+Col_Data <- Col_Data %>%
+  mutate_at(vars(starts_with("Flwr")),
+            funs(ifelse(is.na(.), mean(., na.rm=T), .))) %>%  #funs specifies the function being used i.e., if is.na else mean(na.rm=T)|if and else argument-> ifelse
+  mutate_at(vars(starts_with("FVeg")),
+            funs(ifelse(is.na(.), mean(., na.rm=T), .))) %>% 
+  mutate_at(vars(starts_with("InfMass")),
+            funs(ifelse(is.na(.), mean(., na.rm=T), .))) %>%
+  mutate_at(vars(starts_with("HVeg")),
+            funs(ifelse(is.na(.), mean(., na.rm=T), .)))
+```
+
+
+The following lines of code will be focus in Analyzing the correlation cor() for Fveg, Flwr, and InfMass (columns of interest)
+```{r}
+FVeg<- Col_Data %>% 
+  dplyr::select(starts_with("FVeg"))
+cor(FVeg) #Highly correlated data
+```
+
+
+```{r}
+InfMass <-Col_Data %>%
+ dplyr::select(starts_with("InfMass"))
+cor(InfMass) #Data looks highly correlated
+```
+
+
+```{r}
+Flwr <-Col_Data %>%
+ dplyr::select(starts_with("Flwr"))
+cor(Flwr) #Data looks highly correlated
+```
+```{r}
+#Capturing data
+names(Col_Data)
+```
+
+3.
+
+Scaling the variables 
+```{r}
+Response<- Col_Data %>%  
+  dplyr::select(1:7, HVeg10, HVeg09, Fruits07)
+Features<- Col_Data %>%  
+  dplyr::select(-c(1:7, HVeg10, HVeg09, Fruits07))
+```
+
+Applying scale function for the features
+```{r}
+Scaled<- Features %>% 
+  mutate_all(scale)
+```
+
+4. 
+It is not necessary to select the appropriate features for this data set, because we have already predetermined the most important features that will be use in our LDA model, i.e., InfMass, FVeg, Flrw. 
+
+5. 
+Creating a seperate data set for my features and classifying variables
+```{r}
+predictors <- Col_Data[, c("Flwr07", "FVeg07", "InfMass07", "Fruits07", "Flwr08", "FVeg08","HVeg08","InfMass08", "Flwr09", "FVeg09", "HVeg09", "InfMass09", "Flwr10", "FVeg10","HVeg10", "InfMass10")]
+
+response <-Col_Data[, c("Region", "Pop", "Site")]
+
+```
+
+#Part 2: LDA
+I will discriminant analysis to look at which features best distinguish the genetic populations and different growing sites within the common garden
+
+1. 
+Using lda() function to run one or more LDA model(s) that distinguish genetic population regions 
+
+Model for region 
+```{r}
+LDAMod_Reg <- lda(x= predictors, grouping= response$Region)
+summary(LDAMod_Reg)
+```
+
+Model for Population
+```{r}
+LDAMod_Pop <- lda(x= predictors, grouping= response$Pop)
+summary(LDAMod_Pop)
+```
+
+2. 
+For sites we need 2 LD axes to ditinguish among the three sites, while for the six populations we will need 5 different LD axes. considering LD axes: Categories- 1
+
+3. 
+
+Exploring objects in LD models
+```{r}
+LDAMod_Reg$counts
+```
+```{r}
+LDAMod_Pop$counts
+```
+Scaling 
+```{r}
+LDAMod_Reg$scaling
+```
+
+```{r}
+ LDAMod_Pop$scaling
+```
+
+Scaling explanation: The LD axes are calculated to maximize the seperation amongst groups, while the scaling slice describes the weights assigned for every variable in the calculation for every LD axis.The LD eingenvectors are the direction of the features in accordance with the LD  axes. Furthermore the number of eingenvectors is equivalent to the number of LD axes and the number of Group Categories - 1. LD axes in the feature space aim to maximize the separation amongst groups, by using covariances. While, PCA aimss to capture the most variace, and reduce dimensionality. 
+
+4. 
+Applying predict to obtain LDA scores 
+for population
+```{r}
+Pop_predict<- predict(LDAMod_Pop)
+summary(Pop_predict)
+head(Pop_predict$x) #predicted score for the LDA analysis 
+```
+
+for region 
+```{r}
+Reg_predict<- predict(LDAMod_Reg)
+summary(Reg_predict)
+head(Reg_predict$x)
+```
+
+```{r}
+head(Reg_predict$class)
+```
+```{r}
+head(Pop_predict$class)
+```
+Producing a Confusion matrix (region)
+```{r}
+CatDat<- data.frame(Observed= as.factor(response$Region), 
+                    Predicted= Reg_predict$class)
+table(CatDat)
+```
+Producing a Confusion matrix (Population)
+```{r}
+CatDat1<- data.frame(Observed= as.factor(response$Pop), 
+                    Predicted= Pop_predict$class)
+table(CatDat1)
+```
+
+Performing a posterir probability 
+```{r}
+#Population genetics
+Post<- as.data.frame(Pop_predict$posterior)
+head(Post)
+```
+```{r}
+#Region
+Post1<- as.data.frame(Reg_predict$posterior)
+head(Post1)
+```
+
+
+5. 
+The LDA models of the Lythrum data indicate that populations C and E  pocess the highest probability, while mid and north represent the highest probability for region. Nonetheless, the data data acquired did not clearly demonstrate a robust relationship amongst these groups. Furthermore, the traits that distinguish the genetic population and regions best is Fveg. In comparison to PCA results, LDA provides more nuanced insights into the relationships between traits and populations/regions.Nonetheless, for specific results the LDA analysis yielded differing results than that of the PCA, for instance, population "E" is considered insignificant, however, while performing LDA, "E" was shown to be one of the most significant values in the seconed most significant variable.
+
+
