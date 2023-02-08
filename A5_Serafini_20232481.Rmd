@@ -1,0 +1,109 @@
+---
+title: "A5_Serafini_20232481"
+author: "Igor Serafini"
+date: "2023-02-08"
+output: html_document
+---
+
+#####Please Note I had to regenerate my data for week 1, to fit the goal of the assignment#####
+
+Regenerating Data set to include genus names to a file named measurements.csv 
+```{r}
+set.seed(123)
+
+#Genrate Data for 6 different Genesus 
+species_names <- c("Homo sapiens", "Felis catus", "Canis lupus", "Bos taurus", "Equus caballus", "Ursus arctos")
+
+Observer_names <- c("Juan", "James", "Ben", "Ana", "Igor", "Andrei")
+
+# Generate 100 rows of data
+measurements <- data.frame(X = 1:100, 
+                 Species_names = sample(species_names, 100, replace = TRUE), 
+                 Limb_width = round(runif(100, 1.5, 3), 3), 
+                 Limb_length = round(runif(100, 1.5, 3), 3), 
+                 Observer_names = sample(Observer_names, 100, replace = TRUE))
+
+
+#Creating .csv measurements data
+
+write.csv(measurements, "measurements.csv")
+
+```
+
+Glossary: 
+Homo sapiens (human)
+Felis catus (cat)
+Canis lupus (gray wolf)
+Bos taurus (cattle)
+Equus caballus (horse)
+Ursus arctos (Bear)
+
+
+###Assignment 5 R-egex
+
+##Part 1
+
+#Github link
+
+[My GitHub repository](https://github.com/IgorSerafini/Assignment1_BIOL432)
+
+File name: A5_Serafini_Igor.pdf
+
+#1
+
+Importing measurements.csv into MData
+```{r}
+MData<- read.csv("measurements.csv")
+```
+
+loading libraries
+```{r}
+library(dplyr)
+```
+
+Inspecting data
+```{r}
+str(MData)
+head(MData)
+dim(MData)
+```
+
+#2
+
+Adding a new column called Sp that shortens the genus name in the Organism column to only the first letter and period
+```{r}
+#1st I will create a column that has the same contents as the Species columnn (Genuses) and call it sp. Then I will apply mutate with gsub fufill the preset assignment conditions. 
+
+Sp<- measurements$Species_names #Creating object with species names content called sp
+  
+```
+
+Generating custom gsub function and mutating sp into data frame; to satisfy the following 
+  1. Capture First letter
+  2. Remainder of the first word = .
+```{r}
+MData<- MData %>% 
+  mutate(Sp = sapply(Sp, function(x) gsub("^(\\w)\\w*(\\s)([^ ]+).*","\\1. \\2 \\3", x)))
+
+#Lets check our mutated Data
+
+View(MData)
+```
+
+Creating new data set with dplyr where the Species_name column (Aka Organism) is substituted by the newly generate Sp column 
+```{r}
+MData<- MData %>% 
+  select(X, Sp, Limb_width, Limb_length, Observer_names)
+
+#Checking the data
+
+print(MData) 
+```
+Saving the dataset as a new file called MeasShort.csv
+```{r}
+write.csv(MData, "MeasShort.csv") #Looks good! Lets commit the code and new data to my Github repository
+```
+
+
+
+
